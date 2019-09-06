@@ -19,11 +19,12 @@
 #define F_SONAR_PIN 34
 #define R_SONAR_PIN 38
 
-#define L_BUMPER_PIN 52
+#define L_BUMPER_PIN 50
 #define R_BUMPER_PIN 53
 
+
 #define LED_PIN 24
-#define FAN_MOTOR_PIN 9
+#define FAN_MOTOR_PIN 8
 
 #define R_LINE_SENSOR_PIN 15
 
@@ -54,6 +55,9 @@ RBFlameSensor flameSensor(3);
 
 int state = WAIT;
 int xFlame, yFlame;
+bool flame; 
+int room;
+bool flameInRoom = false;
 
 void setup() {
   // ===== Inicialização de objetos ===== 
@@ -82,7 +86,7 @@ void loop() {
       state = waitState();     
       break;
     case NAV_RIGHT:
-      state = navRightState();
+      state = navRightStatev1();
       break;
     case CENTER:
       state = centerState();  
@@ -93,6 +97,7 @@ void loop() {
   }
   showState();
   if(digitalRead(STOP_BUTTON_PIN) == LOW){
+       Serial.println("Stop");
        state = WAIT;
   }
 }
@@ -102,24 +107,27 @@ void loop() {
 int waitState() {
   stop();
   do {
-     
   }while(digitalRead(START_BUTTON_PIN) == HIGH);
 
   return NAV_RIGHT;
 }
-int navRightState() {
+int navRightStatev1() {
   // SE DETECTAR CHAMA
+  int tag = getFloorTagD();
+  
   if(flameSensor.update() == true){
   digitalWrite(LED_PIN, HIGH);
   return CENTER;
-  }
-  
+  } 
   if(getDistance(FSonar) < FRONT_DIST)
     rotateAngle(90);
 
   checkBumpers();
 
   int dist = getDistance(RSonar);
+
+  if (dist < 5)
+    rotateAngle(45);
   int error = dist - RIGHT_DIST;
   int delta = error * GAIN;     
 
@@ -127,6 +135,54 @@ int navRightState() {
     delta = DELTA_LIMIT;
   
   move(BASE_POWER, delta);
+
+  if (tag == CIRCLE_TAG){
+    if (flame == true){
+      meneuverToGoToIslandRoom();
+    }
+  }
+  return NAV_RIGHT;
+}
+int navRightStatev2(){
+  // SE DETECTAR CHAMA
+  int tag = getFloorTagD();
+
+  if (tag == CIRCLE_TAG){
+    if (flame == true) meneuverToGoToIslandRoom();
+  }
+  else if(tag == LINE_TAG){
+    room++; 
+    brake();
+    delay(1000);
+    if (flameSensor.update() == true){
+      flameInRoom = true;
+    }
+    else
+      maneuverToGoToNextRoom();
+  }
+  
+  if(flameSensor.update() == true && flameInRoom == true){
+  digitalWrite(LED_PIN, HIGH);
+  return CENTER;
+  } 
+  if(getDistance(FSonar) < FRONT_DIST)
+    rotateAngle(90);
+
+  checkBumpers();
+
+  int dist = getDistance(RSonar);
+
+  if (dist < 5)
+    rotateAngle(45);
+  int error = dist - RIGHT_DIST;
+  int delta = error * GAIN;     
+
+  if(delta > DELTA_LIMIT)
+    delta = DELTA_LIMIT;
+  
+  move(BASE_POWER, delta);
+
+  
   return NAV_RIGHT;
 }
 int centerState(){
@@ -148,6 +204,7 @@ int centerState(){
   /*if (y > limite) {
     return PUT_OUT; 
   }*/
+  showFlameData(isFlame, getdir);
   return NAV_RIGHT;
 }
 int putOutState(){
@@ -164,6 +221,18 @@ int putOutState(){
   }
   digitalWrite(LED_PIN, LOW);
   return  WAIT; //NAV_RIGHT PARA VOLTAR AO COMEÇO
+}
+void meneuverToGoToIslandRoom(){
+  rotateAngle(180);
+  moveCrash(BASE_POWER, 0, 2000);
+}
+void maneuverToGoToNextRoom(){
+  switch(room){
+    case 1: moveCrash(-BASE_POWER, 0, 1000); rotateAngle(180);  break;
+    case 2: moveCrash(-BASE_POWER, 0, 1000); rotateAngle(180);  break;
+    case 3: moveCrash(-BASE_POWER, 0, 1000); rotateAngle(180);  break;
+    default: centerState();
+  }
 }
 // ================================================================================
 // Atuadores
@@ -256,12 +325,12 @@ int getDistance(NewPing &sonar) {
   return dist;
 }
 void checkBumpers() {
-  if(digitalRead(L_BUMPER_PIN) == HIGH && digitalRead(R_BUMPER_PIN) == HIGH) 
+  if(digitalRead(L_BUMPER_PIN) == LOW && digitalRead(R_BUMPER_PIN) == LOW) 
     moveCrash(-BASE_POWER, 0, 1000);
-  else if(digitalRead(L_BUMPER_PIN) == HIGH) 
-    moveCrash(-BASE_POWER, 4, 1000);
-  else if(digitalRead(R_BUMPER_PIN) == HIGH) 
-    moveCrash(-BASE_POWER, -4, 1000);
+  else if(digitalRead(L_BUMPER_PIN) == LOW) 
+    Serial.println("Esquerdo");
+  else if(digitalRead(R_BUMPER_PIN) == LOW) 
+    Serial.println("Direita");
 }
 // ================================================================================
 // Interface
@@ -289,4 +358,8 @@ void showState(){
       msg(0, 0, "PUT_OUT", true);        
       break;
   } 
+}
+void showFlameData(bool flame, int dir){
+  msg(1, 0, "F: " + String(flame), true);
+  msg(1, 0, "D: " + String(dir), false);
 }
