@@ -111,10 +111,6 @@ int waitState() {
 }
 int navRightStatev1() {
   // SE DETECTAR CHAMA
-  if(flameSensor.update() == true){
-  digitalWrite(LED_PIN, HIGH);
-  return CENTER;
-  } 
   if(getDistance(FSonar) < FRONT_DIST)
     rotateAngle(45);
 
@@ -136,25 +132,30 @@ int navRightStatev1() {
 int navRightStatev2(){
   // SE DETECTAR CHAMA
   int tag = getFloorTagD();
-  bool isFlame = flameSensor.update();
-  if (tag == CIRCLE_TAG){
-    if (flame == true) meneuverToGoToIslandRoom();
-  } 
-  else if(tag == LINE_TAG){
+  bool isFlame = false;
+  if(tag == LINE_TAG){
     room++; 
     brake();
     delay(1000);
-    if (isFlame == true){
+    moveCrash(BASE_POWER, 0, 1000); //MAYBE
+    rotateAngle(180);   //MAYBE
+    if (bool isFlame = flameSensor.update() == true){
       flameInRoom = true;
+      digitalWrite(LED_PIN, HIGH);  //SUBSTITUI O IF DE BAIXO PARA OTIMIZAR O CODIGO 
+      return CENTER;
     }
     else
       maneuverToGoToNextRoom();
   }
-  
-  if(isFlame == true && flameInRoom == true){
-  digitalWrite(LED_PIN, HIGH);
-  return CENTER;
+  else if (tag == CIRCLE_TAG){
+    if (flame == true) meneuverToGoToIslandRoom();
   } 
+
+  
+//  if(isFlame == true && flameInRoom == true){
+//  digitalWrite(LED_PIN, HIGH);
+//  return CENTER;
+//  } 
   if(getDistance(FSonar) < FRONT_DIST)
     rotateAngle(90);
 
