@@ -4,13 +4,13 @@
 #include <NewPing.h>
 #include "RBFlameSensor.h"
 
-#define R_MOTOR_SPEED_PIN 2
-#define R_MOTOR_CONTROL1_PIN 3
-#define R_MOTOR_CONTROL2_PIN 4
-
-#define L_MOTOR_SPEED_PIN 6
-#define L_MOTOR_CONTROL1_PIN 7
+#define L_MOTOR_SPEED_PIN 3
+#define L_MOTOR_CONTROL1_PIN 4
 #define L_MOTOR_CONTROL2_PIN 5
+
+#define R_MOTOR_SPEED_PIN 8
+#define R_MOTOR_CONTROL1_PIN 6
+#define R_MOTOR_CONTROL2_PIN 7
 
 #define START_BUTTON_PIN 25
 #define STOP_BUTTON_PIN 30
@@ -19,9 +19,8 @@
 #define F_SONAR_PIN 34
 #define R_SONAR_PIN 38
 
-#define L_BUMPER_PIN 50
+#define L_BUMPER_PIN 52
 #define R_BUMPER_PIN 53
-
 
 #define LED_PIN 24
 #define FAN_MOTOR_PIN 8
@@ -34,10 +33,10 @@ const int CENTER = 2;
 const int PUT_OUT = 3;
 
 const int ROTATE_POWER = 8;
-const int RIGHT_DIST = 20;
+const int RIGHT_DIST = 10;
 const int BASE_POWER = 8;
-const float GAIN = 1;      //MODIFICANDO-O IRÁ INFLUÊNCIAR NA CORREÇÃO QUE ELE FARÁ AO DETECTAR A PAREDE
-const int DELTA_LIMIT = 6;
+const float GAIN = 1;     //MODIFICANDO-O IRÁ INFLUÊNCIAR NA CORREÇÃO QUE ELE FARÁ AO DETECTAR A PAREDE
+const int DELTA_LIMIT = 8;
 const int FRONT_DIST = 20;
 
 const int LINE_TAG = 0;
@@ -55,8 +54,8 @@ RBFlameSensor flameSensor(3);
 
 int state = WAIT;
 int xFlame, yFlame;
-bool flame; 
-int room;
+bool flame = false; 
+int room = 0;
 bool flameInRoom = false;
 
 void setup() {
@@ -67,7 +66,7 @@ void setup() {
   Lcd.backlight();
   flameSensor.init();
   // ===== Configuração de pinos =====
-  for(int i = 3; i < 9; i++)
+  for(int i = 2; i < 9; i++)
     pinMode(i, OUTPUT);
 
   pinMode(START_BUTTON_PIN, INPUT_PULLUP);
@@ -77,10 +76,10 @@ void setup() {
   pinMode(R_BUMPER_PIN, INPUT_PULLUP);
 
   pinMode(LED_PIN , OUTPUT);
-  pinMode(FAN_MOTOR_PIN , OUTPUT);
  }
  
 void loop() {
+  showState();
   switch(state) {
     case WAIT:
       state = waitState();     
@@ -95,7 +94,6 @@ void loop() {
       state = putOutState();
       break;  
   }
-  showState();
   if(digitalRead(STOP_BUTTON_PIN) == LOW){
        Serial.println("Stop");
        state = WAIT;
@@ -113,55 +111,47 @@ int waitState() {
 }
 int navRightStatev1() {
   // SE DETECTAR CHAMA
-  int tag = getFloorTagD();
-  
   if(flameSensor.update() == true){
   digitalWrite(LED_PIN, HIGH);
   return CENTER;
   } 
   if(getDistance(FSonar) < FRONT_DIST)
-    rotateAngle(90);
+    rotateAngle(45);
 
   checkBumpers();
 
   int dist = getDistance(RSonar);
-
   if (dist < 5)
     rotateAngle(45);
   int error = dist - RIGHT_DIST;
-  int delta = error * GAIN;     
+  int delta = error * GAIN;
 
   if(delta > DELTA_LIMIT)
     delta = DELTA_LIMIT;
   
   move(BASE_POWER, delta);
-
-  if (tag == CIRCLE_TAG){
-    if (flame == true){
-      meneuverToGoToIslandRoom();
-    }
-  }
+  
   return NAV_RIGHT;
 }
 int navRightStatev2(){
   // SE DETECTAR CHAMA
   int tag = getFloorTagD();
-
+  bool isFlame = flameSensor.update();
   if (tag == CIRCLE_TAG){
     if (flame == true) meneuverToGoToIslandRoom();
-  }
+  } 
   else if(tag == LINE_TAG){
     room++; 
     brake();
     delay(1000);
-    if (flameSensor.update() == true){
+    if (isFlame == true){
       flameInRoom = true;
     }
     else
       maneuverToGoToNextRoom();
   }
   
-  if(flameSensor.update() == true && flameInRoom == true){
+  if(isFlame == true && flameInRoom == true){
   digitalWrite(LED_PIN, HIGH);
   return CENTER;
   } 
@@ -181,15 +171,14 @@ int navRightStatev2(){
     delta = DELTA_LIMIT;
   
   move(BASE_POWER, delta);
-
   
   return NAV_RIGHT;
 }
-int centerState(){
+int centerState(){ 
   bool isFlame = flameSensor.update();
   int getdir = flameSensor.getDir();
   
-  switch (getdir){  //PERGUNTAR AO PROFESSOR
+  switch (getdir){  
     case 1: rotate(-4); break;  //Chama a direita
     case 2: move(4, 0);         //Chama a frente
       if(getDistance(FSonar) < 15){
@@ -220,7 +209,8 @@ int putOutState(){
     return CENTER;  //SE CHAMA AINDA PRESENTE
   }
   digitalWrite(LED_PIN, LOW);
-  return  WAIT; //NAV_RIGHT PARA VOLTAR AO COMEÇO
+  rotateAngle(180);
+  return  NAV_RIGHT; //O ORIGINAL ERA WAIT
 }
 void meneuverToGoToIslandRoom(){
   rotateAngle(180);
@@ -297,12 +287,13 @@ int getDistance(int pin) {
   return distance;
 }
 int getFloorTagD(){                               //RECOMENDADO
-  if(digitalRead(R_LINE_SENSOR_PIN), LOW){
+  if(digitalRead(R_LINE_SENSOR_PIN) == LOW){
       moveCrash(BASE_POWER, 0, 1000);      
       
-      if(digitalRead(R_LINE_SENSOR_PIN), LOW){
+      if(digitalRead(R_LINE_SENSOR_PIN) == LOW){
           return CIRCLE_TAG;
       }
+      else
    return LINE_TAG;
    }
   return NO_TAG;  
@@ -328,9 +319,9 @@ void checkBumpers() {
   if(digitalRead(L_BUMPER_PIN) == LOW && digitalRead(R_BUMPER_PIN) == LOW) 
     moveCrash(-BASE_POWER, 0, 1000);
   else if(digitalRead(L_BUMPER_PIN) == LOW) 
-    Serial.println("Esquerdo");
+    moveCrash(-BASE_POWER, 4, 1000);
   else if(digitalRead(R_BUMPER_PIN) == LOW) 
-    Serial.println("Direita");
+    moveCrash(-BASE_POWER, -4, 1000);
 }
 // ================================================================================
 // Interface
