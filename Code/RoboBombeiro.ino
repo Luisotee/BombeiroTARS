@@ -111,6 +111,10 @@ int waitState() {
 }
 int navRightStatev1() {
   // SE DETECTAR CHAMA
+//  if(flameSensor.update() == true){
+//  digitalWrite(LED_PIN, HIGH);
+//  return CENTER;
+//  } 
   if(getDistance(FSonar) < FRONT_DIST)
     rotateAngle(45);
 
@@ -141,7 +145,7 @@ int navRightStatev2(){
     rotateAngle(180);   //MAYBE
     if (bool isFlame = flameSensor.update() == true){
       flameInRoom = true;
-      digitalWrite(LED_PIN, HIGH);  //SUBSTITUI O IF DE BAIXO PARA OTIMIZAR O CODIGO 
+      digitalWrite(LED_PIN, HIGH);    //SUBSTITUI O IF DE BAIXO PARA OTIMIZAR O CODIGO 
       return CENTER;
     }
     else
@@ -152,7 +156,7 @@ int navRightStatev2(){
   } 
 
   
-//  if(isFlame == true && flameInRoom == true){
+//  if(isFlame == true && flameInRoom == true){     //ESSE IF AQUI
 //  digitalWrite(LED_PIN, HIGH);
 //  return CENTER;
 //  } 
