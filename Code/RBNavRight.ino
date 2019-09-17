@@ -33,12 +33,12 @@ const int CENTER = 2;
 const int PUT_OUT = 3;
 
 const int ROTATE_POWER = 8;
-const int RIGHT_DIST = 13;
+const int RIGHT_DIST = 15;
 const int BASE_POWER = 8;
 const float GAIN = 0.9; 
 //MODIFICANDO-O IRÁ INFLU8NCIAR NA CORREÇÃO QUE ELE FARÁ AO DETECTAR A PAREDE
 const int DELTA_LIMIT = 7;
-const int FRONT_DIST = 15;
+const int FRONT_DIST = 17;
 
 const int LINE_TAG = 0;
 const int CIRCLE_TAG = 1;
@@ -46,8 +46,8 @@ const int NO_TAG = 2;
 
 LiquidCrystal_I2C Lcd(0x27, 16, 2);
 
-Motor LMotor(L_MOTOR_SPEED_PIN, L_MOTOR_CONTROL1_PIN, L_MOTOR_CONTROL2_PIN, 80, 255, 32);
-Motor RMotor(R_MOTOR_SPEED_PIN, R_MOTOR_CONTROL1_PIN, R_MOTOR_CONTROL2_PIN, 50, 240, 32);
+Motor LMotor(L_MOTOR_SPEED_PIN, L_MOTOR_CONTROL1_PIN, L_MOTOR_CONTROL2_PIN, 70, 255, 32);
+Motor RMotor(R_MOTOR_SPEED_PIN, R_MOTOR_CONTROL1_PIN, R_MOTOR_CONTROL2_PIN, 68, 255, 32);
 NewPing LSonar(L_SONAR_PIN, L_SONAR_PIN, 100);
 NewPing FSonar(F_SONAR_PIN, F_SONAR_PIN, 100);
 NewPing RSonar(R_SONAR_PIN, R_SONAR_PIN, 100);
@@ -81,13 +81,12 @@ void setup() {
  
 void loop() {
   showState();
-
 switch(state) {
     case WAIT:
       state = waitState();     
       break;
     case NAV_RIGHT:
-      state = navRightStatev2();
+      state = navRightStatev1();
       break;
     case CENTER:
       state = centerState();  
@@ -181,7 +180,8 @@ int centerState(){
   
   switch (getdir){  
     case 1: rotate(-4); break;  //Chama a direita
-    case 2: move(4, 0);         //Chama a frente
+    case 2: 
+      move(4, 0);         //Chama a frente
       if(getDistance(FSonar) < 15){
         brake();
         return PUT_OUT; 
