@@ -1,0 +1,52 @@
+#include <stdio.h>
+#include <string.h>
+void recebeString(char *string);
+void embaralha(char *string1, char *string2, char *string3);
+int main(){
+	char string1[80], string2[80], string3[80];
+	recebeString(string1);
+	recebeString(string2);
+	embaralha(string1, string2, string3);
+	puts(string3);
+}
+
+void recebeString(char *string){
+	gets(string);
+}
+
+void embaralha(char *string1, char *string2, char *string3){
+	int tamString1 = strlen(string1);
+	int tamString2 = strlen(string2);
+	int i, maior, menor;
+	char *backup = string3;
+	char *stringMaior;
+	if (tamString2 > tamString1){
+		menor = tamString1;
+		maior = tamString2;
+		stringMaior = string2;
+	}		
+	else{
+		menor = tamString1;
+		maior = tamString1;	
+		stringMaior = string1;
+	}
+			
+	for (i = 0; i < menor*2; i++){
+		if (i % 2 == 0){
+			*string3 = *string1;
+			string1++;
+		}
+		else{
+			*string3 = *string2;
+			string2++;
+		}			
+		string3++;	
+	}
+	stringMaior += menor + 1;
+	maior += i;
+	for (i = i; i <= maior; i++){
+		*string3 = *stringMaior;
+		string3++; stringMaior++;
+	}
+	*string3 = '\0';	
+}
