@@ -27,13 +27,16 @@
 
 #define R_LINE_SENSOR_PIN 15
 
+#define R_ENCODER_PIN 44
+#define L_ENCODER_PIN 45
+
 const int WAIT = 0;
 const int NAV_RIGHT = 1;
 const int CENTER = 2;
 const int PUT_OUT = 3;
 
 const int ROTATE_POWER = 8;
-const int RIGHT_DIST = 15;
+const int RIGHT_DIST = 12;
 const int BASE_POWER = 8;
 const float GAIN = 0.9; 
 //MODIFICANDO-O IRÁ INFLU8NCIAR NA CORREÇÃO QUE ELE FARÁ AO DETECTAR A PAREDE
@@ -43,6 +46,7 @@ const int FRONT_DIST = 17;
 const int LINE_TAG = 0;
 const int CIRCLE_TAG = 1;
 const int NO_TAG = 2;
+const int PULSE = 10.525; //MM por pulso
 
 LiquidCrystal_I2C Lcd(0x27, 16, 2);
 
@@ -81,6 +85,7 @@ void setup() {
  
 void loop() {
   showState();
+  //moveForward(100, 110);
 switch(state) {
     case WAIT:
       state = waitState();     
@@ -181,7 +186,7 @@ int centerState(){
   switch (getdir){  
     case 1: rotate(-4); break;  //Chama a direita
     case 2: 
-      move(4, 0);         //Chama a frente
+      moveForward(100, 110);         //Chama a frente
       if(getDistance(FSonar) < 15){
         brake();
         return PUT_OUT; 
@@ -323,6 +328,14 @@ void checkBumpers() {
     moveCrash(-BASE_POWER, 4, 1000);
   else if(digitalRead(R_BUMPER_PIN) == LOW) 
     moveCrash(-BASE_POWER, -4, 1000);
+}
+void encoder(){
+  if (digitalRead(R_ENCODER_PIN) == HIGH){
+    //UMA VOLTA NO ENCODER DIREITO
+  }
+  if (digitalRead(L_ENCODER_PIN) == HIGH){
+    //UMA VOLTA NO ENCODER ESQUERDO
+  }
 }
 // ================================================================================
 // Interface
