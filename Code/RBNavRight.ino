@@ -36,9 +36,9 @@ const int CENTER = 2;
 const int PUT_OUT = 3;
 
 const int ROTATE_POWER = 8;
-const int RIGHT_DIST = 12;
+const int RIGHT_DIST = 17;
 const int BASE_POWER = 8;
-const float GAIN = 0.9; 
+const float GAIN = 1; 
 //MODIFICANDO-O IRÁ INFLU8NCIAR NA CORREÇÃO QUE ELE FARÁ AO DETECTAR A PAREDE
 const int DELTA_LIMIT = 7;
 const int FRONT_DIST = 17;
@@ -51,7 +51,7 @@ const int PULSE = 10.525; //MM por pulso
 LiquidCrystal_I2C Lcd(0x27, 16, 2);
 
 Motor LMotor(L_MOTOR_SPEED_PIN, L_MOTOR_CONTROL1_PIN, L_MOTOR_CONTROL2_PIN, 70, 255, 32);
-Motor RMotor(R_MOTOR_SPEED_PIN, R_MOTOR_CONTROL1_PIN, R_MOTOR_CONTROL2_PIN, 68, 255, 32);
+Motor RMotor(R_MOTOR_SPEED_PIN, R_MOTOR_CONTROL1_PIN, R_MOTOR_CONTROL2_PIN, 57, 255, 32);
 NewPing LSonar(L_SONAR_PIN, L_SONAR_PIN, 100);
 NewPing FSonar(F_SONAR_PIN, F_SONAR_PIN, 100);
 NewPing RSonar(R_SONAR_PIN, R_SONAR_PIN, 100);
@@ -85,7 +85,16 @@ void setup() {
  
 void loop() {
   showState();
-  //moveForward(100, 110);
+//  bool isFlame = flameSensor.update();
+//  if (isFlame){
+//    Serial.println("Ta pegando fogo bicho");
+//    int getdir = flameSensor.getDir();
+//  Serial.println(getdir);
+//  }
+  
+// move(-8, 7);
+// move(8, 0);
+// moveBackward(85, 105);
 switch(state) {
     case WAIT:
       state = waitState();     
@@ -146,8 +155,11 @@ int navRightStatev2(){
   if(tag == LINE_TAG){
     room++; 
     brake();
-    delay(1000);
+    delay(500);
     moveCrash(BASE_POWER, 0, 1000); //MAYBE
+    for (int i = 0; i < 180; i+=10){
+      
+    }
     rotateAngle(180);   //MAYBE
     if (bool isFlame = flameSensor.update() == true){
       flameInRoom = true;
@@ -187,7 +199,7 @@ int centerState(){
     case 1: rotate(-4); break;  //Chama a direita
     case 2: 
       moveForward(100, 110);         //Chama a frente
-      if(getDistance(FSonar) < 15){
+      if(getDistance(FSonar) < 17){
         brake();
         return PUT_OUT; 
       }
@@ -205,11 +217,12 @@ int centerState(){
 int putOutState(){
   //Apagar chama
   digitalWrite(FAN_MOTOR_PIN, HIGH);
-  delay(3000);
+  delay(5000);
   digitalWrite(FAN_MOTOR_PIN, LOW);
   
-  moveCrash(-4, 0, 1500);
-  
+  //moveCrash(-4, 0, 1500);
+  moveBackward(85, 105);
+  delay(1500);
   if (flameSensor.update() == true){
     digitalWrite(LED_PIN, HIGH);
     return CENTER;  //SE CHAMA AINDA PRESENTE
@@ -274,6 +287,16 @@ void moveForward(char lSpeed, char rSpeed) {
   digitalWrite(R_MOTOR_CONTROL1_PIN, HIGH);
   digitalWrite(R_MOTOR_CONTROL2_PIN, LOW);
 }
+void moveBackward(char lSpeed, char rSpeed) {
+  analogWrite(L_MOTOR_SPEED_PIN, lSpeed);
+  digitalWrite(L_MOTOR_CONTROL1_PIN, LOW);
+  digitalWrite(L_MOTOR_CONTROL2_PIN, HIGH);
+
+  analogWrite(R_MOTOR_SPEED_PIN, rSpeed);
+  digitalWrite(R_MOTOR_CONTROL1_PIN, LOW);
+  digitalWrite(R_MOTOR_CONTROL2_PIN, HIGH);
+}
+
 // ================================================================================
 // Sensores
 // ================================================================================
