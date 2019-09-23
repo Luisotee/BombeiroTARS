@@ -30,8 +30,8 @@
 #define R_ENCODER_PIN 44
 #define L_ENCODER_PIN 45
 
-#define R_FLAME_PIN 1
-#define L_FLAME_PIN 2
+#define R_FLAME_PIN 26
+#define L_FLAME_PIN 28
 
 const int WAIT = 0;
 const int NAV_RIGHT = 1;
@@ -84,20 +84,17 @@ void setup() {
   pinMode(R_BUMPER_PIN, INPUT_PULLUP);
 
   pinMode(LED_PIN , OUTPUT);
+  pinMode(L_FLAME_PIN , INPUT);
+  pinMode(R_FLAME_PIN , INPUT);
  }
  
 void loop() {
   showState();
-//  bool isFlame = flameSensor.update();
-//  if (isFlame){
-//    Serial.println("Ta pegando fogo bicho");
-//    int getdir = flameSensor.getDir();
-//  Serial.println(getdir);
-//  }
-  
-// move(-8, 7);
+ //move(4, -2); //MOVEU PRA ESQUERDA
+ //move(4, 2); //MOVEU PRA DIREITA
 // move(8, 0);
 // moveBackward(85, 105);
+
 switch(state) {
     case WAIT:
       state = waitState();     
@@ -198,17 +195,33 @@ int centerState(){
   bool lFlame = lFlameSensor();
   bool rFlame = rFlameSensor();
   bool fFlame = flameSensor.update();
+  int state = 0;
   if (lFlame == true && rFlame == true && fFlame == true){
-    Serial.println("Calibrar);
+    Serial.println("Calibrar");
   }
   else if(lFlame == true && fFlame == false){
-    //Mova pra direita
+    state = 1;
+    //move pra direita
   }
   else if(lFlame == false && fFlame == true){
+    state = 2;
     //Mova pra esquerda
   }
   else if(lFlame == false && fFlame == true && rFlame == false){
+    state = 3;
     //Chama a frente
+  }
+  switch(state){
+    case 0: return NAV_RIGHT;
+    case 1: move(4, 2); break;
+    case 2: move(4, -2); break;
+    case 3: if(getDistance(FSonar) < 15){
+      move (4, 0); 
+      break;
+    }
+    else{
+      return PUT_OUT;
+    }
   }
   return NAV_RIGHT;
 }
@@ -358,17 +371,21 @@ void encoder(){
     //UMA VOLTA NO ENCODER ESQUERDO
   }
 }
-int rFlameSensor(){
-  if(digitalRead(R_FLAME_PIN) == LOW){ 
-      return 1;
+bool rFlameSensor(){
+  int rFlame = digitalRead(R_FLAME_PIN);
+  if (rFlame != 1)
+  {
+    return true;
   }
-  return 0;
+  return false;
 }
 int lFlameSensor(){
-  if(digitalRead(L_FLAME_PIN) == LOW){ 
-      return 1;
+  int lFlame = digitalRead(R_FLAME_PIN);
+  if (lFlame != 1)
+  {
+    return true;
   }
-  return 0;
+  return false;
 }
 // ================================================================================
 // Interface
