@@ -4,13 +4,13 @@
 #include <NewPing.h>
 #include "RBFlameSensor.h"
 
-#define L_MOTOR_SPEED_PIN 3
-#define L_MOTOR_CONTROL1_PIN 4
-#define L_MOTOR_CONTROL2_PIN 5
+#define R_MOTOR_SPEED_PIN 3
+#define R_MOTOR_CONTROL1_PIN 4
+#define R_MOTOR_CONTROL2_PIN 5
 
-#define R_MOTOR_SPEED_PIN 8
-#define R_MOTOR_CONTROL1_PIN 6
-#define R_MOTOR_CONTROL2_PIN 7
+#define L_MOTOR_SPEED_PIN 8
+#define L_MOTOR_CONTROL1_PIN 6
+#define L_MOTOR_CONTROL2_PIN 7
 
 #define START_BUTTON_PIN 25
 #define STOP_BUTTON_PIN 30
@@ -23,9 +23,15 @@
 #define R_BUMPER_PIN 53
 
 #define LED_PIN 24
-#define FAN_MOTOR_PIN 8
+#define FAN_MOTOR_PIN 9
 
 #define R_LINE_SENSOR_PIN 15
+
+#define R_ENCODER_PIN 44
+#define L_ENCODER_PIN 45
+
+#define R_FLAME_PIN 1
+#define L_FLAME_PIN 2
 
 const int WAIT = 0;
 const int NAV_RIGHT = 1;
@@ -33,20 +39,22 @@ const int CENTER = 2;
 const int PUT_OUT = 3;
 
 const int ROTATE_POWER = 8;
-const int RIGHT_DIST = 10;
+const int RIGHT_DIST = 17;
 const int BASE_POWER = 8;
-const float GAIN = 1;     //MODIFICANDO-O IRÁ INFLUÊNCIAR NA CORREÇÃO QUE ELE FARÁ AO DETECTAR A PAREDE
-const int DELTA_LIMIT = 8;
-const int FRONT_DIST = 20;
+const float GAIN = 1; 
+//MODIFICANDO-O IRÁ INFLU8NCIAR NA CORREÇÃO QUE ELE FARÁ AO DETECTAR A PAREDE
+const int DELTA_LIMIT = 7;
+const int FRONT_DIST = 17;
 
 const int LINE_TAG = 0;
 const int CIRCLE_TAG = 1;
 const int NO_TAG = 2;
+const int PULSE = 10.525; //MM por pulso
 
 LiquidCrystal_I2C Lcd(0x27, 16, 2);
 
-Motor LMotor(L_MOTOR_SPEED_PIN, L_MOTOR_CONTROL1_PIN, L_MOTOR_CONTROL2_PIN, 80, 255, 32);
-Motor RMotor(R_MOTOR_SPEED_PIN, R_MOTOR_CONTROL1_PIN, R_MOTOR_CONTROL2_PIN, 80, 255, 32);
+Motor LMotor(L_MOTOR_SPEED_PIN, L_MOTOR_CONTROL1_PIN, L_MOTOR_CONTROL2_PIN, 70, 255, 32);
+Motor RMotor(R_MOTOR_SPEED_PIN, R_MOTOR_CONTROL1_PIN, R_MOTOR_CONTROL2_PIN, 57, 255, 32);
 NewPing LSonar(L_SONAR_PIN, L_SONAR_PIN, 100);
 NewPing FSonar(F_SONAR_PIN, F_SONAR_PIN, 100);
 NewPing RSonar(R_SONAR_PIN, R_SONAR_PIN, 100);
@@ -66,7 +74,7 @@ void setup() {
   Lcd.backlight();
   flameSensor.init();
   // ===== Configuração de pinos =====
-  for(int i = 2; i < 9; i++)
+  for(int i = 2; i < 10; i++)
     pinMode(i, OUTPUT);
 
   pinMode(START_BUTTON_PIN, INPUT_PULLUP);
@@ -80,7 +88,17 @@ void setup() {
  
 void loop() {
   showState();
-  switch(state) {
+//  bool isFlame = flameSensor.update();
+//  if (isFlame){
+//    Serial.println("Ta pegando fogo bicho");
+//    int getdir = flameSensor.getDir();
+//  Serial.println(getdir);
+//  }
+  
+// move(-8, 7);
+// move(8, 0);
+// moveBackward(85, 105);
+switch(state) {
     case WAIT:
       state = waitState();     
       break;
@@ -111,10 +129,11 @@ int waitState() {
 }
 int navRightStatev1() {
   // SE DETECTAR CHAMA
-//  if(flameSensor.update() == true){
-//  digitalWrite(LED_PIN, HIGH);
-//  return CENTER;
-//  } 
+  bool isFlame = flameSensor.update();
+  if(isFlame == true){     //ESSE IF AQUI
+  digitalWrite(LED_PIN, HIGH);
+  return CENTER;
+  } 
   if(getDistance(FSonar) < FRONT_DIST)
     rotateAngle(45);
 
@@ -130,7 +149,6 @@ int navRightStatev1() {
     delta = DELTA_LIMIT;
   
   move(BASE_POWER, delta);
-  
   return NAV_RIGHT;
 }
 int navRightStatev2(){
@@ -140,8 +158,11 @@ int navRightStatev2(){
   if(tag == LINE_TAG){
     room++; 
     brake();
-    delay(1000);
+    delay(500);
     moveCrash(BASE_POWER, 0, 1000); //MAYBE
+    for (int i = 0; i < 180; i+=10){
+      
+    }
     rotateAngle(180);   //MAYBE
     if (bool isFlame = flameSensor.update() == true){
       flameInRoom = true;
@@ -154,12 +175,6 @@ int navRightStatev2(){
   else if (tag == CIRCLE_TAG){
     if (flame == true) meneuverToGoToIslandRoom();
   } 
-
-  
-//  if(isFlame == true && flameInRoom == true){     //ESSE IF AQUI
-//  digitalWrite(LED_PIN, HIGH);
-//  return CENTER;
-//  } 
   if(getDistance(FSonar) < FRONT_DIST)
     rotateAngle(90);
 
@@ -180,35 +195,32 @@ int navRightStatev2(){
   return NAV_RIGHT;
 }
 int centerState(){ 
-  bool isFlame = flameSensor.update();
-  int getdir = flameSensor.getDir();
-  
-  switch (getdir){  
-    case 1: rotate(-4); break;  //Chama a direita
-    case 2: move(4, 0);         //Chama a frente
-      if(getDistance(FSonar) < 15){
-        brake();
-        return PUT_OUT; 
-      }
-      break;  
-    case 3: rotate(4); break;  //Chama a esquerda
-    case -1: brake(); 
-    return PUT_OUT; 
+  bool lFlame = lFlameSensor();
+  bool rFlame = rFlameSensor();
+  bool fFlame = flameSensor.update();
+  if (lFlame == true && rFlame == true && fFlame == true){
+    Serial.println("Calibrar);
   }
-  /*if (y > limite) {
-    return PUT_OUT; 
-  }*/
-  showFlameData(isFlame, getdir);
+  else if(lFlame == true && fFlame == false){
+    //Mova pra direita
+  }
+  else if(lFlame == false && fFlame == true){
+    //Mova pra esquerda
+  }
+  else if(lFlame == false && fFlame == true && rFlame == false){
+    //Chama a frente
+  }
   return NAV_RIGHT;
 }
 int putOutState(){
   //Apagar chama
   digitalWrite(FAN_MOTOR_PIN, HIGH);
-  delay(3000);
+  delay(5000);
   digitalWrite(FAN_MOTOR_PIN, LOW);
   
-  moveCrash(-4, 0, 1500);
-  
+  //moveCrash(-4, 0, 1500);
+  moveBackward(85, 105);
+  delay(1500);
   if (flameSensor.update() == true){
     digitalWrite(LED_PIN, HIGH);
     return CENTER;  //SE CHAMA AINDA PRESENTE
@@ -257,10 +269,10 @@ void rotate(int power) {
 void rotateAngle(int angle) {
   if(angle >= 0) {
     rotate(ROTATE_POWER);
-    delay(angle * (610 / 180));  
+    delay(angle * (1370 / 180));  
   } else {
     rotate(-ROTATE_POWER);
-    delay(-angle * (610 / 180));  
+    delay(-angle * (1370 / 180));  
   } 
   brake();
 }
@@ -273,6 +285,16 @@ void moveForward(char lSpeed, char rSpeed) {
   digitalWrite(R_MOTOR_CONTROL1_PIN, HIGH);
   digitalWrite(R_MOTOR_CONTROL2_PIN, LOW);
 }
+void moveBackward(char lSpeed, char rSpeed) {
+  analogWrite(L_MOTOR_SPEED_PIN, lSpeed);
+  digitalWrite(L_MOTOR_CONTROL1_PIN, LOW);
+  digitalWrite(L_MOTOR_CONTROL2_PIN, HIGH);
+
+  analogWrite(R_MOTOR_SPEED_PIN, rSpeed);
+  digitalWrite(R_MOTOR_CONTROL1_PIN, LOW);
+  digitalWrite(R_MOTOR_CONTROL2_PIN, HIGH);
+}
+
 // ================================================================================
 // Sensores
 // ================================================================================
@@ -327,6 +349,26 @@ void checkBumpers() {
     moveCrash(-BASE_POWER, 4, 1000);
   else if(digitalRead(R_BUMPER_PIN) == LOW) 
     moveCrash(-BASE_POWER, -4, 1000);
+}
+void encoder(){
+  if (digitalRead(R_ENCODER_PIN) == HIGH){
+    //UMA VOLTA NO ENCODER DIREITO
+  }
+  if (digitalRead(L_ENCODER_PIN) == HIGH){
+    //UMA VOLTA NO ENCODER ESQUERDO
+  }
+}
+int rFlameSensor(){
+  if(digitalRead(R_FLAME_PIN) == LOW){ 
+      return 1;
+  }
+  return 0;
+}
+int lFlameSensor(){
+  if(digitalRead(L_FLAME_PIN) == LOW){ 
+      return 1;
+  }
+  return 0;
 }
 // ================================================================================
 // Interface
