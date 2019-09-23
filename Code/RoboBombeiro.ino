@@ -213,8 +213,8 @@ int centerState(){
   }
   switch(state){
     case 0: return NAV_RIGHT;
-    case 1: move(4, 2); break;
-    case 2: move(4, -2); break;
+    case 1: move(4, -2); break;
+    case 2: move(4, 2); break;
     case 3: if(getDistance(FSonar) < 15){
       move (4, 0); 
       break;
