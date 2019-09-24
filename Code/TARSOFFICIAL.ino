@@ -43,7 +43,7 @@ const int RIGHT_DIST = 17;
 const int BASE_POWER = 8;
 const float GAIN = 1; 
 //MODIFICANDO-O IRÁ INFLU8NCIAR NA CORREÇÃO QUE ELE FARÁ AO DETECTAR A PAREDE
-const int DELTA_LIMIT = 7;
+const int DELTA_LIMIT = 6;
 const int FRONT_DIST = 17;
 
 const int LINE_TAG = 0;
@@ -162,7 +162,7 @@ int navRightStatev2(){
     rotateAngle(180);   //MAYBE
     if (bool isFlame = flameSensor.update() == true){
       flameInRoom = true;
-      digitalWrite(LED_PIN, HIGH);    //SUBSTITUI O IF DE BAIXO PARA OTIMIZAR O CODIGO 
+      digitalWrite(LED_PIN, HIGH);    
       return CENTER;
     }
     else
@@ -194,7 +194,7 @@ int centerState(){
   bool f = flameSensor.update();
   int d = flameSensor.getDir();
 
-  switch (d) {
+  switch (d){
     case 1:  // Chama à direita
       rotate(-4);
       break;
@@ -217,7 +217,7 @@ int centerState(){
         if (f == true)
           return CENTER;
       }
-      stop();
+      brake();
       return PUT_OUT;
       break;
   }
@@ -234,7 +234,7 @@ int centerState(){
 }
 int putOutState(){
   //Apagar chama
-  for (int i = 0; i < 5; i++){
+  for (int i = 0; i < 7; i++){
   digitalWrite(FAN_MOTOR_PIN, HIGH);
   rotateAngle(-50);
   rotateAngle(60);
@@ -243,9 +243,12 @@ int putOutState(){
   //moveCrash(-4, 0, 1500);
   moveBackward(85, 105);
   delay(1500);
-  if (flameSensor.update() == true){
+  for (i = 0; i < 18; i++){
+    rotateAngle(20);
+    if (flameSensor.update() == true){
     digitalWrite(LED_PIN, HIGH);
     return CENTER;  //SE CHAMA AINDA PRESENTE
+    }
   }
   digitalWrite(LED_PIN, LOW);
   rotateAngle(180);
@@ -337,7 +340,7 @@ int getDistance(int pin) {
 }
 int getFloorTagD(){                               //RECOMENDADO
   if(digitalRead(R_LINE_SENSOR_PIN) == LOW){
-      moveCrash(BASE_POWER, 0, 1000);      
+      Serial.println("Branco");    
       
       if(digitalRead(R_LINE_SENSOR_PIN) == LOW){
           return CIRCLE_TAG;
@@ -425,5 +428,5 @@ void showState(){
 }
 void showFlameData(bool flame, int dir){
   msg(1, 0, "F: " + String(flame), true);
-  msg(1, 0, "D: " + String(dir), false);
+  msg(1, 0, "D: " + String(dir), true);
 }
