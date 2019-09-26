@@ -208,6 +208,18 @@ int centerState(){
         rotateAngle(20);
         if (flameSensor.update())
           return CENTER;
+        rotateAngle(20);
+        return CENTER;
+        rotateAngle(-20);
+        if (flameSensor.update())
+          return CENTER;
+        rotateAngle(-20);
+        return CENTER;
+        rotateAngle(-20);
+        if (flameSensor.update())
+          return CENTER;
+        rotateAngle(-20);
+        return CENTER;
       if (lFlameSensor() || rFlameSensor()){
         moveBackward(85, 105);
         delay(450);
