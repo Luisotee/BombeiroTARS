@@ -257,8 +257,6 @@ int putOutState(){
     }
   }
   digitalWrite(LED_PIN, LOW);
-  rotateAngle(180);
-  moveCrash(8, 0, 1000);
   flameExtinguished = true;
   return  NAV_LEFT; //O ORIGINAL ERA WAIT
 }
