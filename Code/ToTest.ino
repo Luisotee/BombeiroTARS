@@ -31,8 +31,8 @@
 #define R_ENCODER_PIN 44
 #define L_ENCODER_PIN 45
 
-#define L_FLAME_PIN 26
-#define R_FLAME_PIN 28
+#define R_FLAME_PIN 26
+#define L_FLAME_PIN 28
 
 const int WAIT = 0;
 const int NAV_RIGHT = 1;
@@ -121,6 +121,8 @@ switch(state) {
        Serial.println("Stop");
        state = WAIT;
   }
+  //Serial.println(digitalRead(L_FLAME_PIN));
+  //Serial.println(lFlameSensor());
 }
 // ================================================================================
 // Estados
@@ -202,19 +204,19 @@ int centerState(){
     moveForward(85, 105);
   }
   else if (lFlame == true && fFlame == true && rFlame == false){
-    rotate(4);
+    rotateAngle(5); //Move pra esquerda
   }
   else if (lFlame == false && fFlame == true && rFlame == true){
-    rotate(-4);
+    rotateAngle(-5); //Move pra direita
   }
   else if (lFlame == true && fFlame == false && rFlame == false){
-    rotate(-4);
+    rotateAngle(5); //Move pra esquerda
   }
   else if (lFlame == false && fFlame == false && rFlame == true){
-    rotate(4);
+    rotateAngle(-5); //Move pra direita
   }
   else if (lFlame == false && fFlame == false && rFlame == false){
-    return NAV_RIGHT;
+    return NAV_RIGHT; 
   }
   if(fFlame == true && getDistance(FSonar) < 17){
     return PUT_OUT;     //SE DER ERRADO COLOQUE lFlame == true e rFlame == true ou false
@@ -244,7 +246,7 @@ int putOutState(){
   return  GO_BACK;
 }
 void goIslandRoom(){
-  rotateAngle(200);
+  rotateAngle(180);
   moveForward(95, 117);
   delay(1500);
 }
@@ -451,7 +453,7 @@ bool rFlameSensor(){
   return false;
 }
 bool lFlameSensor(){
-  int lFlame = digitalRead(R_FLAME_PIN);
+  int lFlame = digitalRead(L_FLAME_PIN);
   if (lFlame != 1)
   {
     return true;
