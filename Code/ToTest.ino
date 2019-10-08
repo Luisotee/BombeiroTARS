@@ -196,24 +196,34 @@ int goBack(){
   return GO_BACK;
 }
 int centerState(){
-  const int dist = 17;
+  const int dist = 23;
   bool fFlame = flameSensor.update();
   bool lFlame = lFlameSensor();
   bool rFlame = rFlameSensor();
   checkBumpers();
-  if ( getDistance(FSonar) > 25)
+  if ( getDistance(FSonar) > dist)
   {
     if (lFlame)
       rotateAngle(5);
     else if (rFlame)
       rotateAngle(-5);
-    else
-      moveForward(65, 80);
+    else  if (fFlame)
+    {
+      int dir = flameSensor.getDir();
+      switch(dir)
+      {
+        case 3: rotateAngle(5); break;
+        case 2: moveForward(85, 105); break;
+        case 1: rotateAngle(-5);  break;
+      }
+    }
   }
   else
   {
     if (fFlame)
     {
+      brake();
+      delay(250);
       return PUT_OUT;
     }
     else if (lFlame)
@@ -226,11 +236,9 @@ int centerState(){
       rotateAngle(-22);
       return PUT_OUT;
     }
-    else
-    {
-      return CENTER;
-    }
-    return CENTER;
+    if (fFlame == false && lFlame == false && rFlame == false)
+      return NAV_RIGHT;
+   return CENTER;
   }
 }
 int putOutState(){
