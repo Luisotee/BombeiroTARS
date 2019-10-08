@@ -194,16 +194,36 @@ int goBack(){
   return GO_BACK;
 }
 int centerState(){
+   const int dist = 23;
    bool f = flameSensor.update();
    int dir = flameSensor.getDir();  
   switch (dir)
   {
     case 3: rotateAngle(5); break;
-    case 2: moveForward(60, 85); 
-    getDistance
+    case 2: moveForward(60, 85); //Chama a frente
+    if (getDistance(FSonar) < dist)
+    {
+      if (flameSensor.update())
+      {
+        brake();
+        delay(250);
+        return PUT_OUT; 
+      }
+    }
     break;
-    case 1: rotateAngle(-5); break;
-    case -1: /*Chacoalhar*/ brake(); delay(500); return PUT_OUT;
+    case 1: rotateAngle(-5); break;     //NAO FUNCIONA //VIRAR PARA DIREITA
+    case -1: 
+    rotateAngle(-20);
+    if (flameSensor.update())
+      return CENTER;
+    rotateAngle(40);
+    if (flameSensor.update())
+      return CENTER;
+    rotateAngle(-20);
+    if (flameSensor.update())
+      return CENTER;
+    else
+      return NAV_RIGHT;
   }
   return CENTER;
 }
