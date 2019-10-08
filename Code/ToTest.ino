@@ -196,35 +196,51 @@ int goBack(){
   return GO_BACK;
 }
 int centerState(){
+  const int dist = 17;
   bool fFlame = flameSensor.update();
   bool lFlame = lFlameSensor();
   bool rFlame = rFlameSensor();
   checkBumpers();
-  if (lFlame == false && fFlame == true && rFlame == false){
-    moveForward(85, 105);
+  if ( getDistance(FSonar) > 25)
+  {
+    if (lFlame)
+      rotateAngle(5);
+    else if (rFlame)
+      rotateAngle(-5);
+    else
+      moveForward(65, 80);
   }
-  else if (lFlame == true && fFlame == true && rFlame == false){
-    rotateAngle(5); //Move pra esquerda
+  else
+  {
+    if (fFlame)
+    {
+      return PUT_OUT;
+    }
+    else if (lFlame)
+    {
+      rotateAngle(22);
+      return PUT_OUT;
+    }
+    else if (rFlame)
+    {
+      rotateAngle(-22);
+      return PUT_OUT;
+    }
+    else
+    {
+      return CENTER;
+    }
+    return CENTER;
   }
-  else if (lFlame == false && fFlame == true && rFlame == true){
-    rotateAngle(-5); //Move pra direita
-  }
-  else if (lFlame == true && fFlame == false && rFlame == false){
-    rotateAngle(5); //Move pra esquerda
-  }
-  else if (lFlame == false && fFlame == false && rFlame == true){
-    rotateAngle(-5); //Move pra direita
-  }
-  else if (lFlame == false && fFlame == false && rFlame == false){
-    return NAV_RIGHT; 
-  }
-  if(fFlame == true && getDistance(FSonar) < 17){
-    return PUT_OUT;     //SE DER ERRADO COLOQUE lFlame == true e rFlame == true ou false
-  }
-  return CENTER;
 }
 int putOutState(){
   //Apagar chama
+  bool fFlame = flameSensor.update();
+  bool lFlame = lFlameSensor();
+  bool rFlame = rFlameSensor();
+  if (lFlame == false && fFlame == false && rFlame == false){
+    return NAV_RIGHT;
+  }
   for (int i = 0; i < 7; i++){
   digitalWrite(FAN_MOTOR_PIN, HIGH);
   rotateAngle(-50);
