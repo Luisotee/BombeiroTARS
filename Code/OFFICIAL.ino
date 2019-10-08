@@ -1,3 +1,4 @@
+//ROBO TARS 28.09.2019 23h
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
 #include "Motor.h"
@@ -30,14 +31,15 @@
 #define R_ENCODER_PIN 44
 #define L_ENCODER_PIN 45
 
-#define L_FLAME_PIN 26
-#define R_FLAME_PIN 28
+#define R_FLAME_PIN 26
+#define L_FLAME_PIN 28
 
 const int WAIT = 0;
 const int NAV_RIGHT = 1;
 const int CENTER = 2;
 const int PUT_OUT = 3;
-const int NAV_LEFT = 4;
+const int GO_BACK = 4;
+const int ROOMS = 5;
 
 const int ROTATE_POWER = 8;
 const int RIGHT_DIST = 17;
@@ -108,9 +110,12 @@ switch(state) {
     case PUT_OUT:
       state = putOutState();
       break;
-    case NAV_LEFT:
+    case GO_BACK:
       state = goBack();
       break;   
+    case ROOMS:
+      state = rooms();
+      break;
   }
   if(digitalRead(STOP_BUTTON_PIN) == LOW){
        Serial.println("Stop");
@@ -137,11 +142,13 @@ int navRightStatev1() {
     wentToIsland = true;
     goIslandRoom();
   }
-  rooms();
+  if (tag == LINE_TAG){
+    return ROOMS;
+  }
   bool isFlame = flameSensor.update();
-  if(isFlame == true){     //ESSE IF AQUI
-  digitalWrite(LED_PIN, HIGH);
-  return CENTER;
+  if(isFlame == true){
+    digitalWrite(LED_PIN, HIGH);
+    return CENTER;
   } 
   if(getDistance(FSonar) < FRONT_DIST)
     rotateAngle(45);
@@ -184,51 +191,40 @@ int goBack(){
     delta = DELTA_LIMIT;
   
   move(BASE_POWER, delta);
-  return NAV_LEFT;
+  return GO_BACK;
 }
-int centerState(){ 
-  bool f = flameSensor.update();
-  
-  switch (f){
-    case 1:  // Chama em frente
-      moveForward(95, 117);
-      // Método 1
-      checkBumpers();
-    if (getDistance(RSonar) < 7)
-          rotateAngle(35); 
-      break;
-    case 0: // Perdeu a chama   
+int centerState(){
+   const int dist = 23;
+   bool f = flameSensor.update();
+   int dir = flameSensor.getDir();  
+  switch (dir)
+  {
+    case 3: rotateAngle(5); break;
+    case 2: moveForward(60, 85); //Chama a frente
+    if (getDistance(FSonar) < dist)
+    {
+      if (flameSensor.update())
+      {
         brake();
-        delay(250);     
-        rotateAngle(20);
-        if (flameSensor.update())
-          return CENTER;
-        rotateAngle(20);
-        if (flameSensor.update())
-          return CENTER;
-        rotateAngle(-20);
-        if (flameSensor.update())
-          return CENTER;
-        rotateAngle(-20);
-        if (flameSensor.update())
-          return CENTER;
-        rotateAngle(-20);
-        if (flameSensor.update())
-          return CENTER;
-        rotateAngle(-20);
-        if (flameSensor.update())
-          return CENTER;
-        rotateAngle(40);
-      if (lFlameSensor() || rFlameSensor()){
-        moveBackward(85, 105);
-        delay(450);
-        brake();
-      delay(250);
-      return PUT_OUT;
-      }     
-      break;
+        delay(250);
+        return PUT_OUT; 
+      }
+    }
+    break;
+    case 1: rotateAngle(-5); break;     //NAO FUNCIONA //VIRAR PARA DIREITA
+    case -1: 
+    rotateAngle(-20);
+    if (flameSensor.update())
+      return CENTER;
+    rotateAngle(40);
+    if (flameSensor.update())
+      return CENTER;
+    rotateAngle(-20);
+    if (flameSensor.update())
+      return CENTER;
+    else
+      return NAV_RIGHT;
   }
-  
   return CENTER;
 }
 int putOutState(){
@@ -251,14 +247,14 @@ int putOutState(){
   }
   digitalWrite(LED_PIN, LOW);
   flameExtinguished = true;
-  return  NAV_LEFT; //O ORIGINAL ERA WAIT
+  return  GO_BACK;
 }
 void goIslandRoom(){
-  rotateAngle(200);
+  rotateAngle(180);
   moveForward(95, 117);
   delay(1500);
 }
-void rooms(){
+int rooms(){
   if (room == 2 && r2 == false){
     r2 = true;
     moveCrash(4, 0, 400);
@@ -312,20 +308,6 @@ void rooms(){
       return CENTER;  //SE CHAMA AINDA PRESENTE
       }
     }
-    int i = 0;
-    do{
-      int tag = getFloorTagA();
-      switch (tag){
-        case LINE_TAG: room++; break;
-        case CIRCLE_TAG: laps++; break;
-        }
-      moveForward(85, 105);
-      i++;
-      delay(1);
-      }while(i < 1000);
-      rotateAngle(-80);
-      moveForward(85, 105);
-      delay(750);
   }
   else if (room == 8 && r8 == false){
     r8 = true;
@@ -346,6 +328,7 @@ void rooms(){
       }
     }
   }
+  return NAV_RIGHT;
 }
 // ================================================================================
 // Atuadores
@@ -474,7 +457,7 @@ bool rFlameSensor(){
   return false;
 }
 bool lFlameSensor(){
-  int lFlame = digitalRead(R_FLAME_PIN);
+  int lFlame = digitalRead(L_FLAME_PIN);
   if (lFlame != 1)
   {
     return true;
