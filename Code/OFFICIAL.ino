@@ -41,12 +41,12 @@ const int PUT_OUT = 3;
 const int GO_BACK = 4;
 const int ROOMS = 5;
 
-const int ROTATE_POWER = 8;
-const int RIGHT_DIST = 17;
-const int BASE_POWER = 10;
-const float GAIN = 1; 
+const int ROTATE_POWER = 20;
+const int RIGHT_DIST = 23;
+const int BASE_POWER = 20;
+const float GAIN = 0.8; 
 //MODIFICANDO-O IRÁ INFLU8NCIAR NA CORREÇÃO QUE ELE FARÁ AO DETECTAR A PAREDE
-const int DELTA_LIMIT = 8;
+const int DELTA_LIMIT = 17;
 const int FRONT_DIST = 17;
 
 const int LINE_TAG = 0;
@@ -63,6 +63,7 @@ NewPing FSonar(F_SONAR_PIN, F_SONAR_PIN, 100);
 NewPing RSonar(R_SONAR_PIN, R_SONAR_PIN, 100);
 RBFlameSensor flameSensor(3);
 
+int contGoBack = 0;
 int state = WAIT;
 int xFlame, yFlame;
 bool flame = false; 
@@ -142,14 +143,11 @@ int navRightStatev1() {
     wentToIsland = true;
     goIslandRoom();
   }
+  
   if (tag == LINE_TAG){
     return ROOMS;
   }
-  bool isFlame = flameSensor.update();
-  if(isFlame == true){
-    digitalWrite(LED_PIN, HIGH);
-    return CENTER;
-  } 
+  
   if(getDistance(FSonar) < FRONT_DIST)
     rotateAngle(45);
 
@@ -159,7 +157,7 @@ int navRightStatev1() {
   if (dist < 5)
     rotateAngle(45);
   int error = dist - RIGHT_DIST;
-  int delta = error;
+  int delta = error * GAIN;
 
   if(delta > DELTA_LIMIT)
     delta = DELTA_LIMIT;
@@ -172,12 +170,25 @@ int goBack(){
   if (tag == CIRCLE_TAG){
     state = waitState();
   }
+  else if (tag == LINE_TAG)
+  {
+    if(contGoBack == 0)
+    {
+      contGoBack++;
+    }
+    else
+    {
+      rotateAngle(160);
+      moveForward(85, 105);
+      delay(500); 
+    }
+  }
   if(getDistance(FSonar) < FRONT_DIST)
     rotateAngle(45);
     
-  if (room == 9 && r8 == true){
+  if (tag == LINE_TAG && r8 == true){
     moveForward(85, 105);
-    delay(1500); 
+    delay(800); 
   }
   checkBumpers();
 
@@ -193,38 +204,82 @@ int goBack(){
   move(BASE_POWER, delta);
   return GO_BACK;
 }
+
 int centerState(){
-   const int dist = 23;
+  checkBumpers();
+  if(getDistance(LSonar) < 5)
+  {
+    rotateAngle(-45);
+    moveForward (65,80);
+    delay(500);
+  }
+  else if(getDistance(RSonar) < 5)
+  {
+    rotateAngle(45);
+    moveForward (65,80);
+    delay(500);
+  }
+   const int dist = 16;
    bool f = flameSensor.update();
    int dir = flameSensor.getDir();  
   switch (dir)
   {
     case 3: rotateAngle(5); break;
-    case 2: moveForward(60, 85); //Chama a frente
-    if (getDistance(FSonar) < dist)
-    {
-      if (flameSensor.update())
-      {
-        brake();
-        delay(250);
-        return PUT_OUT; 
-      }
-    }
-    break;
+    case 2: moveForward(85, 105); break; //CHAMA A FRENTE
     case 1: rotateAngle(-5); break;     //NAO FUNCIONA //VIRAR PARA DIREITA
     case -1: 
-    rotateAngle(-20);
-    if (flameSensor.update())
+      rotateAngle(-10);
+      if (flameSensor.update())
+        return CENTER;
+      rotateAngle(-10);
+      if (flameSensor.update())
+        return CENTER;
+      rotateAngle(-10);
+      if (flameSensor.update())
+        return CENTER;  
+      rotateAngle(40);
+      if (flameSensor.update())
+        return CENTER;
+      rotateAngle(10);
+      if (flameSensor.update())
+        return CENTER;
+      rotateAngle(10);
+      if (flameSensor.update())
+        return CENTER;
+      rotateAngle(-30);
+      if (flameSensor.update())
+        return CENTER;
+      moveBackward(85, 105);
+      delay(500);
+      brake();
+      delay(150);
+      if (flameSensor.update())
+        return PUT_OUT;
+      rotateAngle(10); 
+      if (flameSensor.update())
+        return PUT_OUT;
+      rotateAngle(10); 
+      if (flameSensor.update())
+        return PUT_OUT; 
+      rotateAngle(10); 
+      if (flameSensor.update())
+        return PUT_OUT;   
+      rotateAngle(-40);
+      if (flameSensor.update())
+        return PUT_OUT;
+      rotateAngle(-10);
+      if (flameSensor.update())
+        return PUT_OUT;
+      rotateAngle(-10); 
+      if (flameSensor.update())
+        return PUT_OUT;  
+      rotateAngle(30); 
+      if (flameSensor.update())
+        return PUT_OUT;
       return CENTER;
-    rotateAngle(40);
-    if (flameSensor.update())
-      return CENTER;
-    rotateAngle(-20);
-    if (flameSensor.update())
-      return CENTER;
-    else
-      return NAV_RIGHT;
   }
+  if (flameSensor.update() == false && lFlameSensor() == false && rFlameSensor() == false)
+    return NAV_RIGHT; 
   return CENTER;
 }
 int putOutState(){
@@ -235,9 +290,6 @@ int putOutState(){
   rotateAngle(60);
   }
   digitalWrite(FAN_MOTOR_PIN, LOW);
-  //moveCrash(-4, 0, 1500);
-  moveBackward(85, 105);
-  delay(750);
   for (int i = 0; i < 18; i++){
     rotateAngle(20);
     if (flameSensor.update() == true){
@@ -245,6 +297,12 @@ int putOutState(){
       return CENTER;  //SE CHAMA AINDA PRESENTE
     }
   }
+
+  if ( getDistance(RSonar) >= 100 && getDistance(LSonar) < 100)
+  {
+    rotateAngle(180); 
+  }
+  
   digitalWrite(LED_PIN, LOW);
   flameExtinguished = true;
   return  GO_BACK;
@@ -257,16 +315,14 @@ void goIslandRoom(){
 int rooms(){
   if (room == 2 && r2 == false){
     r2 = true;
-    moveCrash(4, 0, 400);
-    for (int i = 0; i < 3; i++){
-        rotateAngle(23);
-        if (flameSensor.update() || lFlameSensor() || rFlameSensor()){
-          digitalWrite(LED_PIN, HIGH);
-          return CENTER;  //SE CHAMA PRESENTE
+    moveCrash(8, 2, 150);
+    rotateAngle(30);
+    if (flameSensor.update() == true){
+      digitalWrite(LED_PIN, HIGH);
+      return CENTER;  //SE CHAMA PRESENTE
     }
-  }
-    for (int i = 0; i < 12; i++){
-    rotateAngle(-20);
+    for (int i = 0; i < 20; i++){
+    rotateAngle(-10);
     if (flameSensor.update() == true){
       digitalWrite(LED_PIN, HIGH);
       return CENTER;  //SE CHAMA PRESENTE
@@ -275,16 +331,9 @@ int rooms(){
   }
   else if (room == 4 && r4 == false){
     r4 = true;
-    moveCrash(4, 0, 800);
-    for (int i = 0; i < 3; i++){
-        rotateAngle(23);
-        if (flameSensor.update() || lFlameSensor() || rFlameSensor()){
-          digitalWrite(LED_PIN, HIGH);
-          return CENTER;  //SE CHAMA AINDA PRESENTE
-    }
-  }
-    for (int i = 0; i < 12; i++){
-    rotateAngle(-20);
+    moveCrash(8, 2, 250);
+    for (int i = 0; i < 18; i++){
+    rotateAngle(-10);
     if (flameSensor.update() == true){
       digitalWrite(LED_PIN, HIGH);
       return CENTER;  //SE CHAMA AINDA PRESENTE
@@ -293,16 +342,9 @@ int rooms(){
   }
   else if (room == 6 && r6 == false){
     r6 = true;
-    moveCrash(4, 0, 700);
-    for (int i = 0; i < 2; i++){
-        rotateAngle(23);
-        if (flameSensor.update() || lFlameSensor() || rFlameSensor()){
-          digitalWrite(LED_PIN, HIGH);
-          return CENTER;  //SE CHAMA AINDA PRESENTE
-    }
-  }
-    for (int i = 0; i < 12; i++){
-    rotateAngle(-20);
+    moveCrash(8, 2, 250);
+    for (int i = 0; i < 18; i++){
+    rotateAngle(-10);
     if (flameSensor.update() == true){
       digitalWrite(LED_PIN, HIGH);
       return CENTER;  //SE CHAMA AINDA PRESENTE
@@ -311,17 +353,10 @@ int rooms(){
   }
   else if (room == 8 && r8 == false){
     r8 = true;
-    moveForward(85, 105);
+    moveForward(65, 80);
     delay(400);
-    for (int i = 0; i < 3; i++){
-        rotateAngle(23);
-        if (flameSensor.update() || lFlameSensor() || rFlameSensor()){
-          digitalWrite(LED_PIN, HIGH);
-          return CENTER;  //SE CHAMA PRESENTE
-    }
-  }
-    for (int i = 0; i < 13; i++){
-    rotateAngle(-20);
+    for (int i = 0; i < 18; i++){
+    rotateAngle(-10);
     if (flameSensor.update() == true){
       digitalWrite(LED_PIN, HIGH);
       return CENTER;  //SE CHAMA PRESENTE
@@ -358,10 +393,10 @@ void rotate(int power) {
 void rotateAngle(int angle) {
   if(angle >= 0) {
     rotate(ROTATE_POWER);
-    delay(angle * (1250 / 180));  
+    delay(angle * (40 / 9));  
   } else {
     rotate(-ROTATE_POWER);
-    delay(-angle * (1250 / 180));  
+    delay(-angle * (40 / 9));  
   } 
   brake();
 }
