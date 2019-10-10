@@ -42,7 +42,7 @@ const int GO_BACK = 4;
 const int ROOMS = 5;
 
 const int ROTATE_POWER = 20;
-const int RIGHT_DIST = 23;
+int RIGHT_DIST = 23;
 const int BASE_POWER = 20;
 const float GAIN = 0.8; 
 //MODIFICANDO-O IRÁ INFLU8NCIAR NA CORREÇÃO QUE ELE FARÁ AO DETECTAR A PAREDE
@@ -95,6 +95,8 @@ void setup() {
  }
  
 void loop() {
+//  bool k = flameSensor.update();
+//  Serial.println(flameSensor.getDir());
   showState();
   msg(1, 1, String(laps), false);
   msg(1, 8, String(room), false);
@@ -130,7 +132,7 @@ int waitState() {
   stop();
   do {
   }while(digitalRead(START_BUTTON_PIN) == HIGH);
-
+  delay(3000);
   return NAV_RIGHT;
 }
 int navRightStatev1() {
@@ -170,19 +172,19 @@ int goBack(){
   if (tag == CIRCLE_TAG){
     state = waitState();
   }
+  else if (tag == LINE_TAG && contGoBack == 0)
+  {
+    contGoBack++;
+    room++;
+  }
   else if (tag == LINE_TAG)
   {
-    if(contGoBack == 0)
-    {
-      contGoBack++;
-    }
-    else
-    {
-      rotateAngle(160);
-      moveForward(85, 105);
-      delay(500); 
-    }
+    rotateAngle(160);
+    moveForward(85, 105);
+    delay(500); 
   }
+  if (room >= 6)
+    RIGHT_DIST = 17;
   if(getDistance(FSonar) < FRONT_DIST)
     rotateAngle(45);
     
@@ -207,76 +209,58 @@ int goBack(){
 
 int centerState(){
   checkBumpers();
-  if(getDistance(LSonar) < 5)
-  {
-    rotateAngle(-45);
-    moveForward (65,80);
-    delay(500);
-  }
-  else if(getDistance(RSonar) < 5)
-  {
-    rotateAngle(45);
-    moveForward (65,80);
-    delay(500);
-  }
+//  const int distParede = 10;
+//  if(getDistance(LSonar) < distParede)
+//  {
+//    rotateAngle(-10);
+//    moveForward (65,80);
+//    delay(250);
+//  }
+//  else if(getDistance(RSonar) < distParede)
+//  {
+//    rotateAngle(10);
+//    moveForward (65,80);
+//    delay(250);
+//  }
    const int dist = 16;
    bool f = flameSensor.update();
    int dir = flameSensor.getDir();  
   switch (dir)
   {
     case 3: rotateAngle(5); break;
-    case 2: moveForward(85, 105); break; //CHAMA A FRENTE
+    case 2:
+    if (getDistance(LSonar) < 15)
+    {
+      rotateAngle(30);
+      moveForward(85, 105);
+      delay(400);
+      rotateAngle(-40); 
+    }
+    else if (getDistance(RSonar) < 15)
+    {
+      rotateAngle(30);
+      moveForward(85, 105);
+      delay(400);
+      rotateAngle(-40); 
+    }
+    moveForward(65, 80); break; //CHAMA A FRENTE
     case 1: rotateAngle(-5); break;     //NAO FUNCIONA //VIRAR PARA DIREITA
     case -1: 
-      rotateAngle(-10);
-      if (flameSensor.update())
-        return CENTER;
-      rotateAngle(-10);
-      if (flameSensor.update())
-        return CENTER;
-      rotateAngle(-10);
-      if (flameSensor.update())
-        return CENTER;  
-      rotateAngle(40);
-      if (flameSensor.update())
-        return CENTER;
+    for (int i = 0; i < 3; i++)
+    {
       rotateAngle(10);
       if (flameSensor.update())
         return CENTER;
+    }
+    rotateAngle(-30);
+    for (int i = 0; i < 3; i++)
+    {
       rotateAngle(10);
       if (flameSensor.update())
         return CENTER;
-      rotateAngle(-30);
-      if (flameSensor.update())
-        return CENTER;
-      moveBackward(85, 105);
-      delay(500);
-      brake();
-      delay(150);
-      if (flameSensor.update())
-        return PUT_OUT;
-      rotateAngle(10); 
-      if (flameSensor.update())
-        return PUT_OUT;
-      rotateAngle(10); 
-      if (flameSensor.update())
-        return PUT_OUT; 
-      rotateAngle(10); 
-      if (flameSensor.update())
-        return PUT_OUT;   
-      rotateAngle(-40);
-      if (flameSensor.update())
-        return PUT_OUT;
-      rotateAngle(-10);
-      if (flameSensor.update())
-        return PUT_OUT;
-      rotateAngle(-10); 
-      if (flameSensor.update())
-        return PUT_OUT;  
-      rotateAngle(30); 
-      if (flameSensor.update())
-        return PUT_OUT;
-      return CENTER;
+    }
+    return PUT_OUT; 
+      
   }
   if (flameSensor.update() == false && lFlameSensor() == false && rFlameSensor() == false)
     return NAV_RIGHT; 
@@ -284,14 +268,16 @@ int centerState(){
 }
 int putOutState(){
   //Apagar chama
+  moveBackward(85, 105);
+  delay(300);
   for (int i = 0; i < 7; i++){
   digitalWrite(FAN_MOTOR_PIN, HIGH);
   rotateAngle(-50);
   rotateAngle(60);
   }
   digitalWrite(FAN_MOTOR_PIN, LOW);
-  for (int i = 0; i < 18; i++){
-    rotateAngle(20);
+  for (int i = 0; i < 72; i++){
+    rotateAngle(5);
     if (flameSensor.update() == true){
       digitalWrite(LED_PIN, HIGH);
       return CENTER;  //SE CHAMA AINDA PRESENTE
@@ -321,8 +307,8 @@ int rooms(){
       digitalWrite(LED_PIN, HIGH);
       return CENTER;  //SE CHAMA PRESENTE
     }
-    for (int i = 0; i < 20; i++){
-    rotateAngle(-10);
+    for (int i = 0; i < 40; i++){
+    rotateAngle(-5);
     if (flameSensor.update() == true){
       digitalWrite(LED_PIN, HIGH);
       return CENTER;  //SE CHAMA PRESENTE
@@ -331,9 +317,9 @@ int rooms(){
   }
   else if (room == 4 && r4 == false){
     r4 = true;
-    moveCrash(8, 2, 250);
-    for (int i = 0; i < 18; i++){
-    rotateAngle(-10);
+    moveCrash(8, 2, 450);
+    for (int i = 0; i < 34; i++){
+    rotateAngle(-5);
     if (flameSensor.update() == true){
       digitalWrite(LED_PIN, HIGH);
       return CENTER;  //SE CHAMA AINDA PRESENTE
@@ -342,9 +328,15 @@ int rooms(){
   }
   else if (room == 6 && r6 == false){
     r6 = true;
+    RIGHT_DIST = 17;
     moveCrash(8, 2, 250);
-    for (int i = 0; i < 18; i++){
-    rotateAngle(-10);
+    rotateAngle(30);
+    if (flameSensor.update() == true){
+      digitalWrite(LED_PIN, HIGH);
+      return CENTER;  //SE CHAMA PRESENTE
+    }
+    for (int i = 0; i < 34; i++){
+    rotateAngle(-5);
     if (flameSensor.update() == true){
       digitalWrite(LED_PIN, HIGH);
       return CENTER;  //SE CHAMA AINDA PRESENTE
@@ -355,8 +347,18 @@ int rooms(){
     r8 = true;
     moveForward(65, 80);
     delay(400);
-    for (int i = 0; i < 18; i++){
-    rotateAngle(-10);
+    for (int i = 0; i < 2; i++)
+    {
+      rotateAngle(25);
+      if(flameSensor.update())
+      {
+        digitalWrite(LED_PIN, HIGH);
+        return CENTER;
+      }
+    }
+    rotateAngle(-25);
+    for (int i = 0; i < 36; i++){
+    rotateAngle(-5);
     if (flameSensor.update() == true){
       digitalWrite(LED_PIN, HIGH);
       return CENTER;  //SE CHAMA PRESENTE
@@ -461,6 +463,7 @@ int getFloorTagA(){
    }
   return NO_TAG;  
 }
+
 int getDistance(NewPing &sonar) {
   int dist = sonar.ping_cm();
   if(dist == 0) dist = 100;
