@@ -146,9 +146,9 @@ int navRightStatev1() {
     case LINE_TAG: room++; break;
     case CIRCLE_TAG: laps++; break;
   }
-  if (laps == 2 && wentToIsland == false){
-    wentToIsland = true;
-    goIslandRoom();
+  //if (laps == 2 && wentToIsland == false){
+    //wentToIsland = true;
+    //goIslandRoom();
   }
   if (room == 7 && !changeInCourse)
   {
